@@ -267,12 +267,12 @@ Hegemony = sgs.CreateTriggerSkill{
 			room:removeTag(player:objectName())
 			for _,sk in sgs.qlist(sgs.Sanguosha:getGeneral(names[1]):getSkillList()) do
 				if sk:objectName()~="hongyan" then
-					room:acquireSkill(player,sk:objectName())
+					room:acquireSkill(player,sk:objectName())			--会有log. 目前只想到在lang修改
 				end
 			end
 			for _,sk in sgs.qlist(sgs.Sanguosha:getGeneral(names[2]):getSkillList()) do
 				if sk:objectName()~="hongyan" then
-					room:acquireSkill(player,sk:objectName())
+					room:acquireSkill(player,sk:objectName())			--会有log. 目前只想到在lang修改
 				end
 			end
 			setMaxHp(player)
@@ -473,6 +473,7 @@ function sgs.CreateCancelSkill(skname, pattern)
 			if not can_invoke then return false end
 			if not askForShowTrigger(player, skname) then return false end
 			use.to:removeOne(player)
+			if use.to:isEmpty() then return true end
 			data:setValue(use)
 		end
 	}
