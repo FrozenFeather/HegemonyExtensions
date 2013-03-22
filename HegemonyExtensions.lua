@@ -170,7 +170,7 @@ function ShowGeneral(player, general)
 	local log = sgs.LogMessage()
 	log.type = "#HegemonyShow"
 	log.from = player
-	log.arg = isSecondaryHero and "HegGeneral" or "HegGeneral2"
+	log.arg = isSecondaryHero and "HegGeneral2" or "HegGeneral"
 	log.arg2 = general
 	room:sendLog(log)
 	
@@ -184,6 +184,8 @@ function ShowGeneral(player, general)
 		log.arg = new_kingdom
 		room:sendLog(log)
 	end
+	
+	room:getThread():trigger(sgs.GameOverJudge, room, player, sgs.QVariant())
 	
 	if general=="heg_zhouyu" and player:getMark("ChangeAsked")==0 then
 		player:addMark("ChangeAsked")
@@ -313,7 +315,7 @@ Hegemony = sgs.CreateTriggerSkill{
 			end
 			if card:isKindOf("Slash") and player:getSlashCount()>1 and not player:hasFlag("tianyi_success") then
 				if not player:getWeapon() or player:getWeapon():objectName()~="Crossbow" then
-					if not isSkillShown(player, "paoxiao") and table.contains(getHideSkills, "paoxiao") then
+					if not isSkillShown(player, "paoxiao") and table.contains(getHideSkills(player), "paoxiao") then
 						ShowGeneral(player, "heg_zhangfei")
 					end
 				end
@@ -348,15 +350,45 @@ Hegemony = sgs.CreateTriggerSkill{
 
 HegemonyGameOver = sgs.CreateTriggerSkill{
 	name = "#HegemonyGameOver",
-	events = {sgs.BuryVictim, sgs.GameOverJudge},
-	priority = 18,
+	events = {sgs.BuryVictim, sgs.GameOverJudge, sgs.BeforeGameOverJudge},
+	priority = 20,
+	can_trigger = function(self, player)
+		return player:hasSkill(self:objectName())
+	end,
 	on_trigger = function(self, event, player, data)
 		local room = player:getRoom()
 		if not enableHegemony(player) then return false end
 		if event == sgs.GameOverJudge then
+			local winKingdom
+			local kingdoms = {}
+			local kingdomsNum = 0
 			for _,p in sgs.qlist(room:getAlivePlayers()) do
-				if p:getKingdom()=="yxj" then return room:alivePlayerCount()>1 end
+				if getFaceDownNum(p)==2 then return true end
+				if kingdoms[p:getKingdom()] then
+					kingdoms[p:getKingdom()] = kingdoms[p:getKingdom()]+1
+				else
+					kingdoms[p:getKingdom()] = 1
+					kingdomsNum = kingdomsNum+1
+				end
 			end
+			if kingdomsNum>1 then return true end
+			if kingdomsNum==1 then
+				for kd,num in pairs(kingdoms) do
+					if kd=="yxj" and num>1 then return true end
+					winKingdom = kd
+				end
+			end
+			if winKingdom then
+				local winners = {}
+				for _,p in sgs.qlist(room:getAllPlayers()) do
+					if p:getKingdom()==winKingdom then
+						table.insert(p:objectName())
+					end
+				end
+				room:gameOver(table.concat(winner,"+"))
+			end
+			return true
+		elseif event == sgs.BeforeGameOverJudge then return true
 		elseif event == sgs.BuryVictim then
 			local death = data:toDeath()
 			death.who:bury()
@@ -366,7 +398,7 @@ HegemonyGameOver = sgs.CreateTriggerSkill{
 				end
 			end
 			if death.damage and death.damage.from and death.damage.from:objectName()~=death.who:objectName()
-					and getFaceDownNum(death.damage.from)>0 then
+					and getFaceDownNum(death.damage.from)<2 then
 				if death.who:getKingdom()=="yxj" then
 					death.damage.from:drawCards(1)
 				else
@@ -380,7 +412,7 @@ HegemonyGameOver = sgs.CreateTriggerSkill{
 			end
 			return true
 		end
-	end
+	end,
 }
 
 local sklist = sgs.SkillList()
