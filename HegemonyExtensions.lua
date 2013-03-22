@@ -1,7 +1,7 @@
 module("extensions.hegemonyExtensions", package.seeall)
 extension = sgs.Package("hegemonyExtensions")
 
-hegZhuLianBiHe = {  	--珠联璧合
+hegZhuLianBiHe = {		--珠联璧合
 	["liubei"] = "guanyu|zhangfei|ganfuren",
 	["zhugeliang"] = "huangyueying",
 	["wolong"] = "huangyueying|pangtong",
@@ -165,7 +165,15 @@ function ShowGeneral(player, general)
 		room:changeHero(player, general, false, false, isSecondaryHero, false)
 	end
 	local newg = sgs.Sanguosha:getGeneral(general)
-	room:setPlayerProperty(player, "kingdom", sgs.QVariant(newg:getKingdom()))	
+	room:setPlayerProperty(player, "kingdom", sgs.QVariant(newg:getKingdom()))
+	
+	local log = sgs.LogMessage()
+	log.type = "#HegemonyShow"
+	log.from = player
+	log.arg = isSecondaryHero and "HegGeneral" or "HegGeneral2"
+	log.arg2 = general
+	room:sendLog(log)
+	
 	if player:getKingdom()=="god" then
 		local new_kingdom = room:askForKingdom(player)
 		room:setPlayerProperty(player, "kingdom", sgs.QVariant(new_kingdom))
@@ -291,7 +299,7 @@ Hegemony = sgs.CreateTriggerSkill{
 			end
 		elseif event == sgs.CardUsed then
 			local card = data:toCardUse().card
-			if card:getSkillName() then
+			if card:getSkillName() and card:getSkillName()~="" then
 				for _,g in ipairs(getGenerals(player)) do
 					if sgs.Sanguosha:getGeneral(g):hasSkill(card:getSkillName()) then
 						ShowGeneral(player, g)
@@ -351,16 +359,19 @@ HegemonyGameOver = sgs.CreateTriggerSkill{
 			end
 		elseif event == sgs.BuryVictim then
 			local death = data:toDeath()
-			for _,g in ipairs(getGenerals(death.who)) do
-				ShowGeneral(death.who, g)
+			death.who:bury()
+			if getGenerals(death.who) then
+				for _,g in ipairs(getGenerals(death.who)) do
+					ShowGeneral(death.who, g)
+				end
 			end
 			if death.damage and death.damage.from and death.damage.from:objectName()~=death.who:objectName()
-					and getFaceDownNum(death.damage.from)<2 then
+					and getFaceDownNum(death.damage.from)>0 then
 				if death.who:getKingdom()=="yxj" then
 					death.damage.from:drawCards(1)
 				else
 					if death.damage.from:getKingdom()~=death.who:getKingdom() then
-						local n = room:getLieges(death.who:getKingdom(), death.who):length()+1
+						local n = room:getLieges(death.who:getKingdom(), death.damage.from):length()
 						death.damage.from:drawCards(n)
 					else
 						death.damage.from:throwAllHandCardsAndEquips()
@@ -403,6 +414,9 @@ sgs.LoadTranslationTable{
 	["heg_recover"] = "回复一点体力",
 	["heg_draw"] = "摸两张牌",
 	[":@askForShowGeneral"] = "你想明置你的武将牌吗？",
+	["#HegemonyShow"] = " %from 展示了他的 %arg %arg2",
+	["HegGeneral"] = "主将",
+	["HegGeneral2"] = "副将",
 }
 
 --==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==
