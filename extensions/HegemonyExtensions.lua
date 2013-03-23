@@ -51,7 +51,11 @@ end
 
 function setMaxHp(player)
 	local room = player:getRoom()
-	room:setPlayerProperty(player, "maxhp", sgs.QVariant(getGeneralMaxHp(player)))	
+	local wounded = player:isWounded()
+	room:setPlayerProperty(player, "maxhp", sgs.QVariant(getGeneralMaxHp(player)))
+	if not wounded then
+		room:setPlayerProperty(player, "hp", sgs.QVariant(getGeneralMaxHp(player)))
+	end
 end
 
 function getGeneralMaxHp(player)
@@ -115,8 +119,10 @@ function isPairs(a, b)
 end
 
 function gainLimitedMarks(player, gname)
-	if type(hegMarks[gname])=="string" then
-		player:gainMark(hegMarks[gname])
+	if player:isAlive() then
+		if type(hegMarks[gname])=="string" then
+			player:gainMark(hegMarks[gname])
+		end
 	end
 end
 
@@ -250,7 +256,7 @@ function askForShowTrigger(player, skill, data)
 	if getFaceDownNum(player)>0 then
 		for _,g in ipairs(getGenerals(player)) do
 			if sgs.Sanguosha:getGeneral(g):hasSkill(skill) then
-				if room:askForSkillInvoke(player, skname, data) then return false end
+				if room:askForSkillInvoke(player, skill, data) then return false end
 				ShowGeneral(player, g)
 			end
 		end
@@ -260,8 +266,8 @@ end
 
 Hegemony = sgs.CreateTriggerSkill{
 	name = "#Hegemony",
-	events = {sgs.EventPhaseStart, sgs.GameStart, sgs.ChoiceMade, sgs.CardUsed, sgs.CardResponded, sgs.AskForPeaches},
-	priority = 3,
+	events = {sgs.EventPhaseStart, sgs.GameStart, sgs.ChoiceMade, sgs.CardUsed, sgs.CardResponded},
+	priority = 4,
 	on_trigger = function(self, event, player, data)
 		local room = player:getRoom()
 		if not enableHegemony(player) then return false end
@@ -350,8 +356,8 @@ Hegemony = sgs.CreateTriggerSkill{
 			end
 		elseif event == sgs.AskForPeaches then
 			local dying = data:toDying()
-			if dying.who:hasSkill("niepan") and not isSkillShown(player, "niepan") then
-				askForShowTrigger(player, "niepan")
+			if dying.who:hasSkill("niepan") and not isSkillShown(player, "niepan") and player:objectName()==dying.who:objectName() then
+				askForShowTrigger(player, "niepan", data)
 			end
 		end
 	end,
@@ -362,11 +368,10 @@ HegemonyGameOver = sgs.CreateTriggerSkill{
 	events = {sgs.BuryVictim, sgs.GameOverJudge, sgs.BeforeGameOverJudge},
 	priority = 20,
 	can_trigger = function(self, player)
-		return player:hasSkill(self:objectName())
+		return enableHegemony(player)
 	end,
 	on_trigger = function(self, event, player, data)
 		local room = player:getRoom()
-		if not enableHegemony(player) then return false end
 		if event == sgs.GameOverJudge then
 			local winKingdom
 			local kingdoms = {}
@@ -470,6 +475,7 @@ function sgs.CreateCancelSkill(skname, pattern)
 		on_trigger = function(self, event, player, data)
 			local room = player:getRoom()
 			local use = data:toCardUse()
+			if not use.to or not use.to:contains(player) then return false end
 			local card = use.card
 			local can_invoke = false
 			for _,p in ipairs(pattern:split("|")) do
@@ -482,7 +488,6 @@ function sgs.CreateCancelSkill(skname, pattern)
 			if not can_invoke then return false end
 			if not askForShowTrigger(player, skname, data) then return false end
 			use.to:removeOne(player)
-			if use.to:isEmpty() then return true end
 			data:setValue(use)
 		end
 	}
@@ -546,7 +551,7 @@ HegRendeCard = sgs.CreateSkillCard{
 		reason.m_playerId = targets[1]:objectName()
 		room:moveCardTo(self, targets[1], sgs.Player_PlaceHand, reason, false)
 		local old_num = source:getMark("HegRende_count")
-		local new_num = old_mark+self:subcardsLength()
+		local new_num = old_num+self:subcardsLength()
 		room:setPlayerMark(source, "HegRende_count", new_num)
 		if old_num<3 and new_num>=3 then
 			local recover = sgs.RecoverStruct()
@@ -737,7 +742,7 @@ HegMingshi = sgs.CreateTriggerSkill{
 		local room = player:getRoom()
 		local damage = data:toDamage()
 		if not damage.from or getFaceDownNum(damage.from) == 0  then return false end
-		if not askForShowTrigger(player, self:objectName()) then return false end
+		if not askForShowTrigger(player, self:objectName(), data) then return false end
 		room:broadcastSkillInvoke(self:objectName())
 		
 		local log = sgs.LogMessage()
@@ -762,14 +767,14 @@ HegSuishi = sgs.CreateTriggerSkill{
 			local damage = data:toDying().damage
 			if not damage or not damage.from then return false end
 			if isSameKingdom(damage.from, player) then
-				if not askForShowTrigger(player, self:objectName()) then return false end
+				if not askForShowTrigger(player, self:objectName(), data) then return false end
 				room:broadcastSkillInvoke(self:objectName(), 1)
 				player:drawCards(1)
 			end
 		elseif event == sgs.Death then
 			local who = data:toDeath().who
 			if isSameKingdom(who, player) then
-				if not askForShowTrigger(player, self:objectName()) then return false end
+				if not askForShowTrigger(player, self:objectName(), data) then return false end
 				room:broadcastSkillInvoke(self:objectName(), 2)
 				room:loseHp(player)
 			end
@@ -852,7 +857,7 @@ HegShuangren = sgs.CreateTriggerSkill{
 				end
 			end
 			if can_invoke then
-				if not askForShowTrigger(player, self:objectName()) then return false end
+				if not askForShowTrigger(player, self:objectName(), data) then return false end
 				room:askForUseCard(player, "@@HegShuangren", "@shuangren-card", -1, sgs.Card_MethodPindian)
 			end
 			if player:hasFlag("SkipPlay") then
@@ -871,7 +876,7 @@ HegKuanggu = sgs.CreateTriggerSkill{
 		local room = player:getRoom()
 		local damage = data:toDamage()
 		if player:isWounded() and player:distanceTo(damage.to)==1 then
-			if not askForShowTrigger(player, self:objectName()) then return false end
+			if not askForShowTrigger(player, self:objectName(), data) then return false end
 			local recover = sgs.RecoverStruct()
 			recover.who = player
 			recover.recover = damage.damage
@@ -893,7 +898,7 @@ function HegAvoidSA(name)
 				local oname
 				if name == "huoshou" then oname = "HegHuoshou"
 				else oname = "HegJuxiang" end
-				if not askForShowTrigger(player, oname) then return false end
+				if not askForShowTrigger(player, oname, data) then return false end
 				room:broadcastSkillInvoke(name)
 				return true
 			end
@@ -970,7 +975,7 @@ HegXiangle = sgs.CreateTriggerSkill{
 			local use = data:toCardUse()
 			local slash = use.card
 			if slash and slash:isKindOf("Slash") then
-				if not askForShowTrigger(player, "HegXiangle") then return false end
+				if not askForShowTrigger(player, "HegXiangle", data) then return false end
 				local ai_data = sgs.QVariant()
 				ai_data:setValue(player)
 				if not room:askForCard(use.from, ".Basic", "@xiangle-discard", ai_data, sgs.CardDiscarded) then
@@ -998,7 +1003,7 @@ HegWushuang = sgs.CreateTriggerSkill{
 		if event == sgs.TargetConfirmed then
 			local use = data:toCardUse()
 			if use.from and use.from:objectName()~=player:objectName() then return false end
-			if not askForShowTrigger(player, "HegWushuang") then return false end
+			if not askForShowTrigger(player, "HegWushuang", data) then return false end
 			local card = use.card
 			if card:isKindOf("Slash") then
 				if use.from:objectName() == player:objectName() then
@@ -1041,7 +1046,7 @@ HegWansha = sgs.CreateTriggerSkill{
 		local room = player:getRoom()
 		if event == sgs.Dying and player:hasSkill("HegWansha") then
 			if player:getPhase()~=sgs.Player_NotActive then
-				if not askForShowTrigger(player, "HegWansha") then return false end
+				if not askForShowTrigger(player, "HegWansha", data) then return false end
 			end
 		elseif event == sgs.AskForPeaches then
 			local current = room:getCurrent()
@@ -1070,7 +1075,7 @@ HegHuoshou = sgs.CreateTriggerSkill{
 		local card = damage.card
 		local source = room:findPlayerBySkillName(self:objectName())
 		if source and damage.from and source:objectName()~=damage.from:objectName() and card and card:isKindOf("SavageAssault") then
-			if not askForShowTrigger(player, "HegHuoshou") then return false end
+			if not askForShowTrigger(player, "HegHuoshou", data) then return false end
 			if source:isAlive() then
 				damage.from = source
 			else
@@ -1106,7 +1111,7 @@ HegJuxiang = sgs.CreateTriggerSkill{
 				if move.reason.m_reason ~= sgs.CardMoveReason_S_REASON_USE then return false end
 				local card = sgs.Sanguosha:getCard(move.card_ids:first())
 				if card:hasFlag("real_SA") then
-					if not askForShowTrigger(zhurong, "HegJuxiang") then return false end
+					if not askForShowTrigger(zhurong, "HegJuxiang", data) then return false end
 					p:obtainCard(card)
 				end
 			end
@@ -1395,7 +1400,7 @@ HegDuanchang = sgs.CreateTriggerSkill{
 	end,
 }
 
-HegLijian_card = sgs.CreateSkillCard{
+HegLijianCard = sgs.CreateSkillCard{
 	name = "HegLijian",
 	target_fixed = false,
 	will_throw = true,
