@@ -49,11 +49,10 @@ function enableHegemony(player)
 	return true
 end
 
-function setMaxHp(player)
+function setMaxHp(player, isWounded)
 	local room = player:getRoom()
-	local wounded = player:isWounded()
 	room:setPlayerProperty(player, "maxhp", sgs.QVariant(getGeneralMaxHp(player)))
-	if not wounded then
+	if not isWounded then
 		room:setPlayerProperty(player, "hp", sgs.QVariant(getGeneralMaxHp(player)))
 	end
 end
@@ -158,6 +157,7 @@ end
 
 function ShowGeneral(player, general)
 	local room = player:getRoom()
+	local isWounded = player:isWounded()
 	if not string.find(room:getTag("heg_"..player:objectName()):toString(), general) then return end
 	local isSecondaryHero
 	if getFaceDownNum(player)==2 then isSecondaryHero = getGenerals(player)[1]~=general
@@ -224,7 +224,7 @@ function ShowGeneral(player, general)
 	end
 	room:setTag("heg_"..player:objectName(), sgs.QVariant(table.concat(generals, "+")))
 	
-	setMaxHp(player)
+	setMaxHp(player, isWounded)
 	
 	if getFaceDownNum(player)==0 and player:getMark("ShowAlready")==0 then
 		player:addMark("ShowAlready")
@@ -285,7 +285,7 @@ Hegemony = sgs.CreateTriggerSkill{
 					room:acquireSkill(player,sk:objectName())			--会有log. 目前只想到在lang修改
 				end
 			end
-			setMaxHp(player)
+			setMaxHp(player, false)
 			room:setPlayerProperty(player, "hp", sgs.QVariant(player:getMaxHp()))
 			return true
 		elseif event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_RoundStart then
