@@ -58,7 +58,6 @@ function setMaxHp(player, isWounded)
 end
 
 function getGeneralMaxHp(player)
-	local room = player:getRoom()
 	local generals = getGenerals(player)
 	if not generals then return player:getMaxHp() end
 	local maxhp = 0
@@ -235,9 +234,11 @@ function ShowGeneral(player, general)
 		if getGeneralMaxHp(player)%1==0.5 then
 			player:drawCards(1)
 		end
+	end
+	if player:getMark("gainMarkAlready")==0 and type(hegMarks[general])=="string" then
+		player:addMark("gainMarkAlready")
 		gainLimitedMarks(player, general)
 	end
-	
 end
 
 function askForShowGeneral(player)
@@ -266,7 +267,7 @@ end
 
 Hegemony = sgs.CreateTriggerSkill{
 	name = "#Hegemony",
-	events = {sgs.EventPhaseStart, sgs.GameStart, sgs.ChoiceMade, sgs.CardUsed, sgs.CardResponded},
+	events = {sgs.EventPhaseStart, sgs.GameStart, sgs.ChoiceMade, sgs.CardUsed, sgs.CardResponded, sgs.AskForPeaches},
 	priority = 4,
 	on_trigger = function(self, event, player, data)
 		local room = player:getRoom()
@@ -356,7 +357,7 @@ Hegemony = sgs.CreateTriggerSkill{
 			end
 		elseif event == sgs.AskForPeaches then
 			local dying = data:toDying()
-			if dying.who:hasSkill("niepan") and not isSkillShown(player, "niepan") and player:objectName()==dying.who:objectName() then
+			if player:objectName()==dying.who:objectName() and player:hasSkill("niepan") and not isSkillShown(player, "niepan") then
 				askForShowTrigger(player, "niepan", data)
 			end
 		end
