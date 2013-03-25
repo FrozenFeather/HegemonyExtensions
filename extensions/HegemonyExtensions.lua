@@ -162,14 +162,16 @@ function ShowGeneral(player, general)
 	if getFaceDownNum(player)==2 then isSecondaryHero = getGenerals(player)[1]~=general
 	elseif getFaceDownNum(player)==1 then isSecondaryHero = player:getGeneralName()~="anjiang"
 	else return false end
-	if player:getMark("@DCgeneral")>0 and not isSecondaryHero then
+	if not isSecondaryHero then
 		room:setPlayerProperty(player, "general", sgs.QVariant(general))
-	elseif player:getMark("@DCgeneral2")>0 and isSecondaryHero then
-		room:setPlayerProperty(player, "general2", sgs.QVariant(general))
 	else
-		room:changeHero(player, general, false, false, isSecondaryHero, false)
+		room:setPlayerProperty(player, "general2", sgs.QVariant(general))
 	end
 	local newg = sgs.Sanguosha:getGeneral(general)
+	if newg:hasSkill("hongyan") then
+		room:acquireSkill(player, "hongyan")
+		room:filterCards(player, player:getCards("he"), true)
+	end
 	if player:getGeneralName()=="anjiang" then
 		player:setGender(newg:getGender())
 	end
