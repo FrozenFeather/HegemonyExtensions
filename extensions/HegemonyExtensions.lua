@@ -34,6 +34,7 @@ hegSkillCard = {
 	["QiaobianCard"] = "heg_zhanghe",
 	["LeijiCard"] = "heg_zhangjiao",
 	["GuidaoCard"] = "heg_zhangjiao",
+	["GuicaiCard"] = "heg_simayi",
 }
 
 hegMarks = {
@@ -199,8 +200,9 @@ function ShowGeneral(player, general)
 	
 	if general=="heg_zhouyu" and player:getMark("ChangeAsked")==0 then
 		player:addMark("ChangeAsked")
-		if room:askForSkillInvoke(player, "", sgs.QVariant("@askForConvertSp")) then
-			room:changeHero(player, "sp_heg_zhouyu", false, true, isSecondaryHero, false)
+		if room:askForSkillInvoke(player, "ConvertSp", sgs.QVariant("@askForConvertSp")) then
+			local toChange = isSecondaryHero and "general2" or "general"
+			room:setPlayerProperty(player, toChange, sgs.QVariant("sp_heg_zhouyu"))
 		end
 	end
 	
@@ -328,7 +330,7 @@ Hegemony = sgs.CreateTriggerSkill{
 			end
 			if card:isKindOf("Slash") and player:getSlashCount()>1 and not player:hasFlag("tianyi_success") then
 				if not player:getWeapon() or player:getWeapon():objectName()~="Crossbow" then
-					if not isSkillShown(player, "paoxiao") and table.contains(getHideSkills(player), "paoxiao") then
+					if player:hasSkill("paoxiao") and not isSkillShown(player, "paoxiao") then
 						ShowGeneral(player, "heg_zhangfei")
 					end
 				end
@@ -472,6 +474,8 @@ sgs.LoadTranslationTable{
 	["#HegemonyShow"] = " %from 展示了他的 %arg %arg2",
 	["HegGeneral"] = "主将",
 	["HegGeneral2"] = "副将",
+	["ConvertSp"] = "变身",
+	["ConvertSp:@askForConvertSp"] = "是否变身为 SP周瑜 ？",
 }
 
 --==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==--==
@@ -498,6 +502,7 @@ function sgs.CreateCancelSkill(skname, pattern)
 			if not askForShowTrigger(player, skname, data) then return false end
 			use.to:removeOne(player)
 			data:setValue(use)
+			return true
 		end
 	}
 	return HegCancelSkill
@@ -1466,7 +1471,7 @@ HegDuoshiCard = sgs.CreateSkillCard{
 	will_throw = true,
 	target_fixed = true,
 	on_use = function(self, room, source, targets)
-		ShowGeneral(player, "heg_luxun")
+		ShowGeneral(source, "heg_luxun")
 		local kingdom = source:getKingdom()
 		local lieges = sgs.SPlayerList()
 		if getFaceDownNum(source)==2 or kingdom=="yxj" then
