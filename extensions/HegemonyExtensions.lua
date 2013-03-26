@@ -343,6 +343,12 @@ Hegemony = sgs.CreateTriggerSkill{
 					ShowGeneral(player, "heg_xuhuang")
 				end
 			end
+			if card:isKindOf("Slash") and use.to:length()>1 not player:hasFlag("tianyi_success") and
+					not (player:hasWeapon("Halberd") and player:isLastHandCard(use.card) then
+				if player:hasSkill("duanbing") and not isSkillShown("duanbing") then
+					ShowGeneral(player, "heg_dingfeng")
+				end
+			end
 		elseif event == sgs.CardResponded then
 			local card = data:toResponsed().card
 			if card and card:getSkillName() then
@@ -622,8 +628,8 @@ HegZhihengCard = sgs.CreateSkillCard{
 	target_fixed = true,
 	once = true,
 	on_use = function(self, room, source, targets)
-		ShowGeneral(player, "heg_sunquan")
-		room:throwCard(self)
+		ShowGeneral(source, "heg_sunquan")
+		room:throwCard(self, source)
 		source:drawCards(self:subcardsLength())
 	end,
 }
@@ -1695,7 +1701,7 @@ HegLuxun:addSkill(HegQianxun)
 HegLuxun:addSkill(HegDuoshi)
 HegSunshangxiang:addSkill(HegJieyin)
 HegSunshangxiang:addSkill(HegXiaoji)
-HegZhouyu:addSkill("yingzhi")
+HegZhouyu:addSkill("yingzi")
 HegZhouyu:addSkill("fanjian")
 HegXiaoqiao:addSkill("hongyan")
 HegXiaoqiao:addSkill("tianxiang")
