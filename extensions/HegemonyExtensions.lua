@@ -343,8 +343,8 @@ Hegemony = sgs.CreateTriggerSkill{
 					ShowGeneral(player, "heg_xuhuang")
 				end
 			end
-			if card:isKindOf("Slash") and use.to:length()>1 not player:hasFlag("tianyi_success") and
-					not (player:hasWeapon("Halberd") and player:isLastHandCard(use.card) then
+			if card:isKindOf("Slash") and use.to:length()>1 and not player:hasFlag("tianyi_success") and
+					not (player:hasWeapon("Halberd") and player:isLastHandCard(use.card)) then
 				if player:hasSkill("duanbing") and not isSkillShown("duanbing") then
 					ShowGeneral(player, "heg_dingfeng")
 				end
