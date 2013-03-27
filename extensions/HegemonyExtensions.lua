@@ -484,11 +484,16 @@ function sgs.CreateCancelSkill(skname, pattern)
 		name = skname,
 		priority = 2,
 		frequency = sgs.Skill_Compulsory,
-		events = {sgs.TargetConfirming},
+		events = {sgs.CardUsed},
+		can_trigger = function(self, target)
+			return target
+		end,
 		on_trigger = function(self, event, player, data)
 			local room = player:getRoom()
+			local owner = room:findPlayerBySkillName(self:objectName())
+			if not owner then return false end
 			local use = data:toCardUse()
-			if not use.to or not use.to:contains(player) then return false end
+			if use.to:isEmpty() or not use.to:contains(owner) then return false end
 			local card = use.card
 			local can_invoke = false
 			for _,p in ipairs(pattern:split("|")) do
@@ -496,13 +501,16 @@ function sgs.CreateCancelSkill(skname, pattern)
 					can_invoke = true
 				end
 			end
-			if skname == "HegKongcheng" and not player:isKongcheng() then return false end
+			if skname == "HegKongcheng" and not owner:isKongcheng() then return false end
 			if skname == "HegWeimu" and not card:isBlack() then return false end
 			if not can_invoke then return false end
-			if not askForShowTrigger(player, skname, data) then return false end
-			use.to:removeOne(player)
+			if not askForShowTrigger(owner, skname, data) then return false end
+			use.to:removeOne(owner)
 			data:setValue(use)
-			return true
+			if use.to:isEmpty() then 
+				room:throwCard(use.card, use.from)
+				return true 
+			end
 		end
 	}
 	return HegCancelSkill
@@ -605,17 +613,17 @@ HegRende = sgs.CreateTriggerSkill{
 HegJizhi = sgs.CreateTriggerSkill{
 	name = "HegJizhi",
 	frequency = sgs.Skill_NotFrequent,
-	events = {sgs.CardUsed, sgs.CardResponsed},
+	events = {sgs.CardUsed, sgs.CardResponded},
 	on_trigger = function(self, event, player, data)
 		local room = player:getRoom()
 		local card
 		if event == sgs.CardUsed then
 			card = data:toCardUse().card
-		elseif event == sgs.Cardresponsed then
+		elseif event == sgs.CardResponded then
 			card = data:toResponsed().m_card
 		end
 		if card:isKindOf("NDTrick") and not card:isVirtualCard() 
-			and sgs.Sanguosha:getCard(card:getSubcards():first()):objectName()~=self:objectName() then
+			and sgs.Sanguosha:getCard(card:getSubcards():first()):objectName()~=card:objectName() then
 			if room:askForSkillInvoke(player, self:objectName(), data) then
                 room:broadcastSkillInvoke("jizhi")
                 player:drawCards(1)
