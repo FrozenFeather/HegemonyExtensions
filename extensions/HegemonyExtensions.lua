@@ -763,9 +763,9 @@ HegMingshi = sgs.CreateTriggerSkill{
 	on_trigger = function(self, event, player, data)
 		local room = player:getRoom()
 		local damage = data:toDamage()
-		if not damage.from or getFaceDownNum(damage.from) == 0  then return false end
+		if not damage.from or getFaceDownNum(damage.from) == 0 then return false end
 		if not askForShowTrigger(player, self:objectName(), data) then return false end
-		room:broadcastSkillInvoke(self:objectName())
+		room:broadcastSkillInvoke("mingshi")
 		
 		local log = sgs.LogMessage()
 		log.type = "#Mingshi"
