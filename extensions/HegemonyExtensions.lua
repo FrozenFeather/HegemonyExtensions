@@ -352,7 +352,7 @@ Hegemony = sgs.CreateTriggerSkill{
 				end
 			end
 		elseif event == sgs.CardResponded then
-			local card = data:toResponsed().card
+			local card = data:toResponsed().m_card
 			if card and card:getSkillName() then
 				for _,g in ipairs(getGenerals(player)) do
 					if sgs.Sanguosha:getGeneral(g):hasSkill(card:getSkillName()) then
