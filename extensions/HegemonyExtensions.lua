@@ -89,19 +89,6 @@ function isSkillShown(player, skill)
 	return false
 end
 
-function getHideSkills(player)
-	local room = player:getRoom()
-	if getFaceDownNum(player)==0 then return nil end
-	local skills = {}
-	for _,p in pairs(getGenerals(player)) do
-		for _,sk in sgs.qlist(sgs.Sanguosha:getGeneral(p):getVisibleSkillList()) do
-			table.insert(skills, sk)
-		end
-	end
-	if #skills==0 then return nil end
-	return skills
-end
-
 function isPairs(a, b)
 	if type(hegZhuLianBiHe[a])=="string" then
 		local gens = hegZhuLianBiHe[a]:split("|")
@@ -305,12 +292,12 @@ Hegemony = sgs.CreateTriggerSkill{
 				end
 			end
 			if strs[1]=="cardResponded" and strs[3]=="@beige" and strs[4]~="_nil_" then
-				if getHideSkills(player) and table.contains(getHideSkills(player), "beige") then
+				if player:hasSkill("beige") and not isSkillShown(player, "beige") then
 					ShowGeneral(player, "heg_caiwenji")
 				end
 			end
 			if strs[1]=="cardResponded" and strs[3]=="@xiaoguo" and strs[4]~="_nil_" then
-				if getHideSkills(player) and table.contains(getHideSkills(player), "xiaoguo") then
+				if player:hasSkill("xiaoguo") and not isSkillShown(player, "xiaoguo") then
 					ShowGeneral(player, "heg_yuejin")
 				end
 			end
