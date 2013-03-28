@@ -315,7 +315,8 @@ Hegemony = sgs.CreateTriggerSkill{
 				end
 			end
 		elseif event == sgs.CardUsed then
-			local card = data:toCardUse().card
+			local use = data:toCardUse()
+			local card = use.card
 			if card:getSkillName() and card:getSkillName()~="" then
 				for _,g in ipairs(getGenerals(player)) do
 					if sgs.Sanguosha:getGeneral(g):hasSkill(card:getSkillName()) then
@@ -328,11 +329,10 @@ Hegemony = sgs.CreateTriggerSkill{
 					ShowGeneral(player, getSkillCardOwner(card))
 				end
 			end
-			if card:isKindOf("Slash") and player:getSlashCount()>1 and not player:hasFlag("tianyi_success") then
-				if not player:getWeapon() or player:getWeapon():objectName()~="Crossbow" then
-					if player:hasSkill("paoxiao") and not isSkillShown(player, "paoxiao") then
-						ShowGeneral(player, "heg_zhangfei")
-					end
+			if card:isKindOf("Slash") and player:getMark("SlashCount")>=1 and not player:hasFlag("tianyi_success") 
+					and not player:hasWeapon("Crossbow") then
+				if player:hasSkill("paoxiao") and not isSkillShown(player, "paoxiao") then
+					ShowGeneral(player, "heg_zhangfei")
 				end
 			end
 			if card:isKindOf("Snatch") or card:isKindOf("SupplyShortage") and player:distanceTo(use.to:at(0))>1 then
