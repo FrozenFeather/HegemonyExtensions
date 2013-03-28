@@ -248,8 +248,9 @@ function askForShowTrigger(player, skill, data)
 	if getFaceDownNum(player)>0 then
 		for _,g in ipairs(getGenerals(player)) do
 			if sgs.Sanguosha:getGeneral(g):hasSkill(skill) then
-				if room:askForSkillInvoke(player, skill, data) then return false end
+				if not room:askForSkillInvoke(player, skill, data) then return false end
 				ShowGeneral(player, g)
+				return true
 			end
 		end
 	end
@@ -480,7 +481,7 @@ function sgs.CreateCancelSkill(skname, pattern)
 			local owner = room:findPlayerBySkillName(self:objectName())
 			if not owner then return false end
 			local use = data:toCardUse()
-			if use.to:isEmpty() or not use.to:contains(owner) then return false end
+			if not use.to or use.to:isEmpty() or not use.to:contains(owner) then return false end
 			local card = use.card
 			local can_invoke = false
 			for _,p in ipairs(pattern:split("|")) do
@@ -496,7 +497,8 @@ function sgs.CreateCancelSkill(skname, pattern)
 			data:setValue(use)
 			if use.to:isEmpty() then 
 				room:throwCard(use.card, use.from)
-				return true 
+				room:getThread():trigger(sgs.CardFinished, room, use.from, data)
+				return true
 			end
 		end
 	}
