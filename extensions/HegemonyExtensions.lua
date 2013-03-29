@@ -2,19 +2,19 @@ module("extensions.hegemonyExtensions", package.seeall)
 extension = sgs.Package("hegemonyExtensions")
 
 hegZhuLianBiHe = {		--珠联璧合
-	["liubei"] = "guanyu|zhangfei|ganfuren",
-	["zhugeliang"] = "huangyueying",
-	["wolong"] = "huangyueying|pangtong",
-	["zhaoyun"] = "liushan",
-	["huangzhong"] = "weiyan",
-	["menghuo"] = "zhurong",
-	["caocao"] = "dianwei|xuchu",
-	["caopi"] = "zhenji",
-	["sunquan"] = "zhoutai",
-	["zhouyu"] = "huanggai|xiaoqiao",
-	["daqiao"] = "xiaoqiao",
-	["lvbu"] = "diaochan",
-	["yuanshao"] = "yanliangwenchou",
+	["heg_liubei"] = "heg_guanyu|heg_zhangfei|heg_ganfuren",
+	["heg_zhugeliang"] = "heg_huangyueying",
+	["heg_wolong"] = "heg_huangyueying|heg_pangtong",
+	["heg_zhaoyun"] = "heg_liushan",
+	["heg_huangzhong"] = "heg_weiyan",
+	["heg_menghuo"] = "heg_zhurong",
+	["heg_caocao"] = "heg_dianwei|heg_xuchu",
+	["heg_caopi"] = "heg_zhenji",
+	["heg_sunquan"] = "heg_zhoutai",
+	["heg_zhouyu"] = "heg_huanggai|heg_xiaoqiao",
+	["heg_daqiao"] = "heg_xiaoqiao",
+	["heg_lvbu"] = "heg_diaochan",
+	["heg_yuanshao"] = "heg_yanliangwenchou",
 }
 
 hegSkillCard = {
@@ -93,13 +93,13 @@ function isPairs(a, b)
 	if type(hegZhuLianBiHe[a])=="string" then
 		local gens = hegZhuLianBiHe[a]:split("|")
 		for _,g in pairs(gens) do
-			if string.find(b, g) then return true end
+			if b==g then return true end
 		end
 	end
 	if type(hegZhuLianBiHe[b])=="string" then
 		local gens = hegZhuLianBiHe[b]:split("|")
 		for _,g in pairs(gens) do
-			if string.find(a, g) then return true end
+			if a==g then return true end
 		end
 	end
 end
