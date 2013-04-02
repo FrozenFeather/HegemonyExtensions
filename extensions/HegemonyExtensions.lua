@@ -762,7 +762,7 @@ HegMingshi = sgs.CreateTriggerSkill{
 		log.arg2 = damage.damage-1
 		room:sendLog(log)
 		
-		damage.damage = damage-1
+		damage.damage = damage.damage-1
 		data:setValue(damage)
 	end
 }
