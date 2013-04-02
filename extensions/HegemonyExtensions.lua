@@ -539,6 +539,7 @@ HegLuoshen = sgs.CreateTriggerSkill{
 					for i=1, #HegLuoshen_cdids, 1 do
 						move.card_ids:append(HegLuoshen_cdids[i])
 					end
+					HegLuoshen_cdids = {}
 					room:moveCardsAtomic(move, true)
 				end
 			end
@@ -1012,15 +1013,17 @@ HegWushuang = sgs.CreateTriggerSkill{
 		local room = player:getRoom()
 		if event == sgs.TargetConfirmed then
 			local use = data:toCardUse()
-			if use.from and use.from:objectName()~=player:objectName() then return false end
-			if not askForShowTrigger(player, "HegWushuang", data) then return false end
 			local card = use.card
 			if card:isKindOf("Slash") then
 				if use.from:objectName() == player:objectName() then
+				if not askForShowTrigger(player, "HegWushuang", data) then return false end
 					room:setCardFlag(card, "WushuangInvke")
 				end
 			elseif card:isKindOf("Duel") then
-				room:setCardFlag(card, "WushuangInvke")
+				if use.from:objectName()==player:objectName() or use.to:at(0):objectName()==player:objectName() then
+					if not askForShowTrigger(player, "HegWushuang", data) then return false end
+					room:setCardFlag(card, "WushuangInvke")
+				end
 			end
 		elseif event == sgs.SlashProceed then
 			local effect = data:toSlashEffect()
@@ -1411,6 +1414,7 @@ HegDuanchang = sgs.CreateTriggerSkill{
 	end,
 }
 
+HegLijianTarget = {}
 HegLijianCard = sgs.CreateSkillCard{
 	name = "HegLijian",
 	target_fixed = false,
@@ -1423,26 +1427,26 @@ HegLijianCard = sgs.CreateSkillCard{
 				or to_select:objectName()==player:objectName() then return false end
 		local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, 0)
 		if #targets == 1 then
-			player:setTag("HegLijianTarget", sgs.QVariant(targets[1]:objectName()))
+			HegLijianTarget[1] = targets[1]:objectName()
 			return true
 		elseif #targets == 0 then return true end
 		return false
 	end,
 	on_use = function(self, room, source, targets)
 		ShowGeneral(source, "heg_diaochan")
-		local toN = source:getTag("HegLijianTarget"):toString()
+		local toN = HegLijianTarget[1]
 		if not toN or toN == "" then return end
 		local to = toN == targets[1]:objectName() and targets[1] or targets[2]
 		local from = to:objectName() == targets[1]:objectName() and targets[2] or targets[1]
 		local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, 0)
 		duel:toTrick():setCancelable(false)
 		duel:setSkillName("HegLijian")
-		room:removeTag("HegLijianTarget")
 		local use = sgs.CardUseStruct()
 		use.from = from
 		use.to:append(to)
 		use.card = duel
 		room:useCard(use)
+		source:removeTag("HegLijianTarget")
 	end,
 }
 HegLijian = sgs.CreateViewAsSkill{
