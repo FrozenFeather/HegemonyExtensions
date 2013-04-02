@@ -60,17 +60,15 @@ end
 
 function getGeneralMaxHp(player)
 	local generals = getGenerals(player)
-	if not generals then return player:getMaxHp() end
 	local maxhp = 0
 	for _,str in ipairs(generals) do
 		maxhp = maxhp+sgs.Sanguosha:getGeneral(str):getMaxHp()
 	end
-	if getFaceDownNum(player)==1 then
-		if player:getGeneralName()=="anjiang" then
-			maxhp = maxhp+player:getGeneral2():getMaxHp()
-		else
-			maxhp = maxhp+player:getGeneral():getMaxHp()
-		end
+	if player:getGeneralName()~="anjiang" then
+		maxhp = maxhp+player:getGeneral():getMaxHp()
+	end
+	if player:getGeneral2Name()~="anjiang" then
+		maxhp = maxhp+player:getGeneral2():getMaxHp()
 	end
 	maxhp = maxhp/2
 	return maxhp
@@ -279,6 +277,7 @@ Hegemony = sgs.CreateTriggerSkill{
 				end
 			end
 			setMaxHp(player, false)
+			player:setGender(sgs.General_SexLess)
 			room:setPlayerProperty(player, "hp", sgs.QVariant(player:getMaxHp()))
 			return true
 		elseif event == sgs.EventPhaseStart and player:getPhase()==sgs.Player_RoundStart then
@@ -612,7 +611,7 @@ HegJizhi = sgs.CreateTriggerSkill{
 			card = data:toResponsed().m_card
 		end
 		if card:isKindOf("NDTrick") and not card:isVirtualCard() 
-			and sgs.Sanguosha:getCard(card:getSubcards():first()):objectName()~=card:objectName() then
+			and sgs.Sanguosha:getCard(card:getSubcards():first()):objectName()==card:objectName() then
 			if room:askForSkillInvoke(player, self:objectName(), data) then
                 room:broadcastSkillInvoke("jizhi")
                 player:drawCards(1)
@@ -707,7 +706,7 @@ HegXiongyiCard = sgs.CreateSkillCard{
 		for _,p in sgs.qlist(room:getAllPlayers()) do
 			if getFaceDownNum(p)<2 then
 				if not kingdoms[p:getKingdom()] then
-					kingdoms = 0
+					kingdoms[p:getKingdom()] = 0
 				end
 				kingdoms[p:getKingdom()] = kingdoms[p:getKingdom()]+1
 				if p:getKingdom()=="qun" then
@@ -909,8 +908,8 @@ function HegAvoidSA(name)
 				local oname
 				if name == "huoshou" then oname = "HegHuoshou"
 				else oname = "HegJuxiang" end
-				if not askForShowTrigger(player, oname, data) then return false end
-				room:broadcastSkillInvoke(name)
+				if not askForShowTrigger(player, name, data) then return false end
+				room:broadcastSkillInvoke(oname)
 				return true
 			end
 		end
@@ -1213,7 +1212,7 @@ HegQiaobianCard = sgs.CreateSkillCard{
 	end
 }
 HegQiaobianVS = sgs.CreateViewAsSkill{
-	name = "HegQiaobianVS", 
+	name = "HegQiaobian", 
 	n = 0, 
 	view_as = function(self, cards) 
 		return HegQiaobianCard:clone()
@@ -1250,6 +1249,7 @@ HegQiaobian = sgs.CreateTriggerSkill{
 		if index > 0 then
 			if room:askForDiscard(player, self:objectName(), 1, 1, true, false, discard_prompt) then
 				ShowGeneral(player, "heg_zhanghe")
+				room:broadcastSkillInvoke("qiaobian")
 				if not player:isSkipped(nextphase) then
 					if index == 2 or index == 3 then
 						room:askForUseCard(player, "@qiaobian", use_prompt, index)
@@ -1432,8 +1432,8 @@ HegLijianCard = sgs.CreateSkillCard{
 		ShowGeneral(source, "heg_diaochan")
 		local toN = source:getTag("HegLijianTarget"):toString()
 		if not toN or toN == "" then return end
-		local to = toN == targets[1]:objectName() and targets[2] or targets[1]
-		local from = to == targets[1] and targets[2] or targets[1]
+		local to = toN == targets[1]:objectName() and targets[1] or targets[2]
+		local from = to:objectName() == targets[1]:objectName() and targets[2] or targets[1]
 		local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, 0)
 		duel:toTrick():setCancelable(false)
 		duel:setSkillName("HegLijian")
