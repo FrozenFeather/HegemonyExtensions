@@ -61,8 +61,10 @@ end
 function getGeneralMaxHp(player)
 	local generals = getGenerals(player)
 	local maxhp = 0
-	for _,str in ipairs(generals) do
-		maxhp = maxhp+sgs.Sanguosha:getGeneral(str):getMaxHp()
+	if generals then
+		for _,str in ipairs(generals) do
+			maxhp = maxhp+sgs.Sanguosha:getGeneral(str):getMaxHp()
+		end
 	end
 	if player:getGeneralName()~="anjiang" then
 		maxhp = maxhp+player:getGeneral():getMaxHp()
@@ -100,6 +102,7 @@ function isPairs(a, b)
 			if a==g then return true end
 		end
 	end
+	return false
 end
 
 function gainLimitedMarks(player, gname)
@@ -611,8 +614,7 @@ HegJizhi = sgs.CreateTriggerSkill{
 		elseif event == sgs.CardResponded then
 			card = data:toResponsed().m_card
 		end
-		if card:isKindOf("NDTrick") and not card:isVirtualCard() 
-			and sgs.Sanguosha:getCard(card:getSubcards():first()):objectName()==card:objectName() then
+		if card:isNDTrick() and not card:isVirtualCard() then
 			if room:askForSkillInvoke(player, self:objectName(), data) then
                 room:broadcastSkillInvoke("jizhi")
                 player:drawCards(1)
@@ -702,6 +704,8 @@ HegXiongyiCard = sgs.CreateSkillCard{
 	will_throw = false,
 	target_fixed = true,
 	on_use = function(self, room, source, targets)
+		ShowGeneral(source, "heg_mateng")
+		source:loseMark("@arise")
 		local kingdoms = {}
 		local quns = sgs.SPlayerList()
 		for _,p in sgs.qlist(room:getAllPlayers()) do
@@ -733,7 +737,7 @@ HegXiongyiVs = sgs.CreateViewAsSkill{
 		return HegXiongyiCard:clone()
 	end,
 	enabled_at_play = function(self, player)
-		return player:getMark("@arise")>0
+		return player:getMark("@arise")>0 or player:getMark("gainMarkAlready")==0
 	end,
 }
 HegXiongyi = sgs.CreateTriggerSkill{
