@@ -187,7 +187,7 @@ function ShowGeneral(player, general)
 	room:getThread():trigger(sgs.GameOverJudge, room, player, sgs.QVariant())
 	
 	if general=="heg_zhouyu" and player:getMark("ChangeAsked")==0 then
-		player:addMark("ChangeAsked")
+		room:setPlayerMark(player, "ChangeAsked", 1)
 		if room:askForSkillInvoke(player, "ConvertSp", sgs.QVariant("@askForConvertSp")) then
 			local toChange = isSecondaryHero and "general2" or "general"
 			room:setPlayerProperty(player, toChange, sgs.QVariant("sp_heg_zhouyu"))
@@ -218,7 +218,7 @@ function ShowGeneral(player, general)
 	setMaxHp(player, isWounded)
 	
 	if getFaceDownNum(player)==0 and player:getMark("ShowAlready")==0 then
-		player:addMark("ShowAlready")
+		room:setPlayerMark(player, "ShowAlready", 1)
 		local a, b = player:getGeneralName(), player:getGeneral2Name()
 		if isPairs(a, b) then
 			doZhuLianBiHe(player)
@@ -227,8 +227,8 @@ function ShowGeneral(player, general)
 			player:drawCards(1)
 		end
 	end
-	if player:getMark("gainMarkAlready")==0 and type(hegMarks[general])=="string" then
-		player:addMark("gainMarkAlready")
+	if player:getMark("gainMarkAlready"..general)==0 and type(hegMarks[general])=="string" then
+		room:setPlayerMark(player, "gainMarkAlready"..general, 1)
 		gainLimitedMarks(player, general)
 	end
 end
@@ -737,7 +737,7 @@ HegXiongyiVs = sgs.CreateViewAsSkill{
 		return HegXiongyiCard:clone()
 	end,
 	enabled_at_play = function(self, player)
-		return player:getMark("@arise")>0 or player:getMark("gainMarkAlready")==0
+		return player:getMark("@arise")>0 or player:getMark("gainMarkAlready".."heg_mateng")==0
 	end,
 }
 HegXiongyi = sgs.CreateTriggerSkill{
