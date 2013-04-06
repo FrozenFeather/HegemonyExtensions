@@ -1,3 +1,5 @@
+dofile("extensions/HegemonyExtensions")
+
 module("extensions.Emryx", package.seeall)        --Written By Emryx
 extension = sgs.Package("Emryx")
 
