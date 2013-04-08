@@ -35,6 +35,7 @@ hegSkillCard = {
 	["LeijiCard"] = "heg_zhangjiao",
 	["GuidaoCard"] = "heg_zhangjiao",
 	["GuicaiCard"] = "heg_simayi",
+	["LijianCard"] = "heg_diaochan",
 }
 
 hegMarks = {
@@ -119,7 +120,7 @@ end
 
 function doZhuLianBiHe(player)
 	local room = player:getRoom()
-	if not player:isWounded() or room:askForChoice(player, "#Hegemony", "heg_recover+heg_draw")=="heg_draw" then
+	if not player:isWounded() or room:askForChoice(player, "#ZhuLianBiHe", "heg_recover+heg_draw")=="heg_draw" then
 		player:drawCards(2)
 	else
 		local recover = sgs.RecoverStruct()
@@ -163,6 +164,8 @@ function ShowGeneral(player, general)
 	end
 	if player:getGeneralName()=="anjiang" then
 		player:setGender(newg:getGender())
+	else
+		player:setGender(player:getGeneral():getGender())
 	end
 	room:setPlayerProperty(player, "kingdom", sgs.QVariant(newg:getKingdom()))
 	
@@ -308,9 +311,11 @@ Hegemony = sgs.CreateTriggerSkill{
 			local use = data:toCardUse()
 			local card = use.card
 			if card:getSkillName() and card:getSkillName()~="" then
-				for _,g in ipairs(getGenerals(player)) do
-					if sgs.Sanguosha:getGeneral(g):hasSkill(card:getSkillName()) then
-						ShowGeneral(player, g)
+				if getGenerals(player) then
+					for _,g in ipairs(getGenerals(player)) do
+						if sgs.Sanguosha:getGeneral(g):hasSkill(card:getSkillName()) then
+							ShowGeneral(player, g)
+						end
 					end
 				end
 			end
@@ -344,9 +349,11 @@ Hegemony = sgs.CreateTriggerSkill{
 		elseif event == sgs.CardResponded then
 			local card = data:toResponsed().m_card
 			if card and card:getSkillName() then
-				for _,g in ipairs(getGenerals(player)) do
-					if sgs.Sanguosha:getGeneral(g):hasSkill(card:getSkillName()) then
-						ShowGeneral(player, g)
+				if getGenerals(player) then
+					for _,g in ipairs(getGenerals(player)) do
+						if sgs.Sanguosha:getGeneral(g):hasSkill(card:getSkillName()) then
+							ShowGeneral(player, g)
+						end
 					end
 				end
 			end
@@ -458,6 +465,7 @@ sgs.LoadTranslationTable{
 	["hegemonyExtensions"] = "国战扩展",
 	
 	["#Hegemony"] = "国战",
+	["#ZhuLianBiHe"] = "珠联璧合",
 	["heg_recover"] = "回复一点体力",
 	["heg_draw"] = "摸两张牌",
 	[":@askForShowGeneral"] = "你想明置你的武将牌吗？",
@@ -542,8 +550,8 @@ HegLuoshen = sgs.CreateTriggerSkill{
 					for i=1, #HegLuoshen_cdids, 1 do
 						move.card_ids:append(HegLuoshen_cdids[i])
 					end
-					HegLuoshen_cdids = {}
 					room:moveCardsAtomic(move, true)
+					HegLuoshen_cdids = {}
 				end
 			end
 		end
@@ -913,8 +921,8 @@ function HegAvoidSA(name)
 				local oname
 				if name == "huoshou" then oname = "HegHuoshou"
 				else oname = "HegJuxiang" end
-				if not askForShowTrigger(player, name, data) then return false end
-				room:broadcastSkillInvoke(oname)
+				if not askForShowTrigger(player, oname, data) then return false end
+				room:broadcastSkillInvoke(name)
 				return true
 			end
 		end
@@ -1048,8 +1056,8 @@ HegWushuang = sgs.CreateTriggerSkill{
 					jink:addSubcard(second_jink)
 				end
 				room:slashResult(effect, jink)
+				return true
 			end
-			return true
 		end
 		return false
 	end,
@@ -1117,10 +1125,14 @@ HegJuxiang = sgs.CreateTriggerSkill{
 		if not zhurong then return false end
 		if event == sgs.CardUsed then
 			local use = data:toCardUse()
-			if use.card:isVirtualCard() and use.card:isKindOf("SavageAssault") and use.from:objectName()~=zhurong:objectName() then
-				if use.card:subcardsLength() == 1 and sgs.Sanguosha:getCard(use.card:getSubcards():first()):isKindOf("SavageAssault") then
+			if use.from:objectName()==zhurong:objectName() then return false end
+			if use.card:isVirtualCard() then
+				if use.card:isKindOf("SavageAssault") and use.card:subcardsLength() == 1 
+						and sgs.Sanguosha:getCard(use.card:getSubcards():first()):isKindOf("SavageAssault") then
 					room:setCardFlag(use.card:getSubcards():first(), "real_SA")
 				end
+			elseif use.card:isKindOf("SavageAssault") then
+				room:setCardFlag(use.card:getId(), "real_SA")
 			end
 		elseif event == sgs.CardsMoving then
 			local move = data:toMoveOneTime()
@@ -1129,7 +1141,8 @@ HegJuxiang = sgs.CreateTriggerSkill{
 				local card = sgs.Sanguosha:getCard(move.card_ids:first())
 				if card:hasFlag("real_SA") then
 					if not askForShowTrigger(zhurong, "HegJuxiang", data) then return false end
-					p:obtainCard(card)
+					room:broadcastSkillInvoke("juxiang")
+					zhurong:obtainCard(card)
 				end
 			end
 		end
@@ -1335,7 +1348,7 @@ HegHuoshuiVs = sgs.CreateViewAsSkill{
 }
 HegHuoshui = sgs.CreateTriggerSkill{
 	name = "HegHuoshui",
-	view_as_skill = HegHuoShuiVs,
+	view_as_skill = HegHuoshuiVs,
 	events = {sgs.EventPhaseStart, sgs.EventLoseSkill},
 	on_trigger = function(self, event, player, data)
 		local room = player:getRoom()
@@ -1418,57 +1431,11 @@ HegDuanchang = sgs.CreateTriggerSkill{
 	end,
 }
 
-HegLijianTarget = {}
-HegLijianCard = sgs.CreateSkillCard{
-	name = "HegLijian",
-	target_fixed = false,
-	will_throw = true,
-	feasible = function(self, targets)
-		return #targets == 2
+HegLijianPbt = sgs.CreateProhibitSkill{
+	name = "#HegLijian",
+	is_prohibited = function(self, from, to, card)
+		return card:isKindOf("LijianCard") and from:objectName()==to:objectName()
 	end,
-	filter = function(self, targets, to_select,player)
-		if not to_select:getGeneral():isMale() or player:isProhibited(to_select, duel) 
-				or to_select:objectName()==player:objectName() then return false end
-		local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, 0)
-		if #targets == 1 then
-			HegLijianTarget[1] = targets[1]:objectName()
-			return true
-		elseif #targets == 0 then return true end
-		return false
-	end,
-	on_use = function(self, room, source, targets)
-		ShowGeneral(source, "heg_diaochan")
-		local toN = HegLijianTarget[1]
-		if not toN or toN == "" then return end
-		local to = toN == targets[1]:objectName() and targets[1] or targets[2]
-		local from = to:objectName() == targets[1]:objectName() and targets[2] or targets[1]
-		local duel = sgs.Sanguosha:cloneCard("duel", sgs.Card_NoSuit, 0)
-		duel:toTrick():setCancelable(false)
-		duel:setSkillName("HegLijian")
-		local use = sgs.CardUseStruct()
-		use.from = from
-		use.to:append(to)
-		use.card = duel
-		room:useCard(use)
-		source:removeTag("HegLijianTarget")
-	end,
-}
-HegLijian = sgs.CreateViewAsSkill{
-	name = "HegLijian",
-	n = 1,
-	view_filter = function(self, selected, to_select)
-		return true
-	end,
-	view_as = function(self, cards)
-		if #cards ~= 1  then return nil end
-		local card = HegLijianCard:clone()
-		card:addSubcard(cards[1])
-		card:setSkillName(self:objectName())
-		return card
-	end,
-	enabled_at_play = function(self, player)
-		return not player:hasUsed("#HegLijian")
-	end
 }
 
 HegDuoshiCard = sgs.CreateSkillCard{
@@ -1577,7 +1544,7 @@ sgs.LoadTranslationTable{
 --wei
 HegCaocao = sgs.General(extension, "heg_caocao", "wei", 4)
 HegCaopi = sgs.General(extension, "heg_caopi", "wei", 3)
-HegZhenji = sgs.General(extension, "heg_zhenji", "wei", 3)
+HegZhenji = sgs.General(extension, "heg_zhenji", "wei", 3, false)
 HegYuejin = sgs.General(extension, "heg_yuejin", "wei", 4)
 HegGuojia = sgs.General(extension, "heg_guojia", "wei", 3)
 HegSimayi = sgs.General(extension, "heg_simayi", "wei", 3)
@@ -1593,9 +1560,9 @@ HegCaoren = sgs.General(extension, "heg_caoren", "wei", 4)
 
 --shu
 HegLiubei = sgs.General(extension, "heg_liubei", "shu", 4)
-HegGanfuren = sgs.General(extension, "heg_ganfuren", "shu", 4)
+HegGanfuren = sgs.General(extension, "heg_ganfuren", "shu", 4, false)
 HegZhugeliang = sgs.General(extension, "heg_zhugeliang", "shu", 3)
-HegHuangyueying = sgs.General(extension, "heg_huangyueying", "shu", 3)
+HegHuangyueying = sgs.General(extension, "heg_huangyueying", "shu", 3, false)
 HegWolong = sgs.General(extension, "heg_wolong", "shu", 3)
 HegPangtong = sgs.General(extension, "heg_pangtong", "shu", 3)
 HegGuanyu = sgs.General(extension, "heg_guanyu", "shu", 5)
@@ -1606,16 +1573,16 @@ HegMachao = sgs.General(extension, "heg_machao", "shu", 4)
 HegWeiyan = sgs.General(extension, "heg_weiyan", "shu", 4)
 HegLiushan = sgs.General(extension, "heg_liushan", "shu", 3)
 HegMenghuo = sgs.General(extension, "heg_menghuo", "shu", 4)
-HegZhurong = sgs.General(extension, "heg_zhurong", "shu", 4)
+HegZhurong = sgs.General(extension, "heg_zhurong", "shu", 4, false)
 
 --wu
 HegSunquan = sgs.General(extension, "heg_sunquan", "wu", 4)
 HegLuxun = sgs.General(extension, "heg_luxun", "wu", 3)
-HegSunshangxiang = sgs.General(extension, "heg_sunshangxiang", "wu", 3)
+HegSunshangxiang = sgs.General(extension, "heg_sunshangxiang", "wu", 3, false)
 HegZhouyu = sgs.General(extension, "heg_zhouyu", "wu", 3)
-HegXiaoqiao = sgs.General(extension, "heg_xiaoqiao", "wu", 3)
+HegXiaoqiao = sgs.General(extension, "heg_xiaoqiao", "wu", 3, false)
 HegDingfeng = sgs.General(extension, "heg_dingfeng", "wu", 4)
-HegDaqiao = sgs.General(extension, "heg_daqiao", "wu", 3)
+HegDaqiao = sgs.General(extension, "heg_daqiao", "wu", 3, false)
 HegLusu = sgs.General(extension, "heg_lusu", "wu", 3)
 HegErzhang = sgs.General(extension, "heg_erzhang", "wu", 3)
 HegSunjian = sgs.General(extension, "heg_sunjian", "wu", 4)
@@ -1627,18 +1594,18 @@ HegZhoutai = sgs.General(extension, "heg_zhoutai", "wu", 4)
 
 --qun
 HegMateng = sgs.General(extension, "heg_mateng", "qun", 4)
-HegZoushi = sgs.General(extension, "heg_zoushi", "qun", 3)
+HegZoushi = sgs.General(extension, "heg_zoushi", "qun", 3, false)
 HegTianfeng = sgs.General(extension, "heg_tianfeng", "qun", 3)
 HegKongrong = sgs.General(extension, "heg_kongrong", "qun", 3)
 HegPanfeng = sgs.General(extension, "heg_panfeng", "qun", 4)
 HegJiling = sgs.General(extension, "heg_jiling", "qun", 4)
 HegLvbu = sgs.General(extension, "heg_lvbu", "qun", 5)
-HegDiaochan = sgs.General(extension, "heg_diaochan", "qun", 3)
+HegDiaochan = sgs.General(extension, "heg_diaochan", "qun", 3, false)
 HegYuanshao = sgs.General(extension, "heg_yuanshao", "qun", 4)
 HegYanliangwenchou = sgs.General(extension, "heg_yanliangwenchou", "qun", 4)
 HegZhangjiao = sgs.General(extension, "heg_zhangjiao", "qun", 3)
 HegJiaxu = sgs.General(extension, "heg_jiaxu", "qun", 3)
-HegCaiwenji = sgs.General(extension, "heg_caiwenji", "qun", 3)
+HegCaiwenji = sgs.General(extension, "heg_caiwenji", "qun", 3, false)
 HegHuatuo = sgs.General(extension, "heg_huatuo", "qun", 3)
 HegPangde = sgs.General(extension, "heg_pangde", "qun", 4)
 
@@ -1647,10 +1614,10 @@ translate{caocao="曹操", caopi="曹丕", zhenji="甄姬", yuejin="乐进", guo
 	dianwei="典韦", caoren="曹仁", liubei="刘备", ganfuren="甘夫人", zhugeliang="诸葛亮", huangyueying="黃月英",
 	wolong="臥龙", pangtong="庞统", guanyu="关羽", zhangfei="张飞", zhaoyun="赵云", huangzhong="黃忠", machao="马超",
 	weiyan="魏延", liushan="刘禅", menghuo="孟获", zhurong="祝融", sunquan="孙权", luxun="陸逊", sunshangxiang="孙尚香",
-	zhouyu="周瑜", xiaoqiao="小乔", dingfeng="丁奉", daqiao="大乔", lusu="鲁肃", erzhang="张昭&张纮", sunjian="孙堅",
+	zhouyu="周瑜", xiaoqiao="小乔", dingfeng="丁奉", daqiao="大乔", lusu="鲁肃", erzhang="张昭＆张纮", sunjian="孙堅",
 	taishici="太史慈", ganning="甘宁", huanggai="黃盖", lvmeng="吕蒙", zhoutai="周泰", mateng="马腾", zoushi="邹氏",
 	tianfeng="田丰", kongrong="孔融", panfeng="潘凤", jiling="纪灵", lvbu="吕布", diaochan="貂蝉", yuanshao="袁绍",
-	yanliangwenchou="颜良&文丑", zhangjiao="张角", jiaxu="贾诩", caiwenji="蔡文姬", huatuo="华佗", pangde="庞德"}
+	yanliangwenchou="颜良＆文丑", zhangjiao="张角", jiaxu="贾诩", caiwenji="蔡文姬", huatuo="华佗", pangde="庞德"}
 
 --wei
 HegCaocao:addSkill("jianxiong")
@@ -1744,7 +1711,8 @@ HegKongrong:addSkill("lirang")
 HegPanfeng:addSkill("kuangfu")
 HegJiling:addSkill(HegShuangren)
 HegDiaochan:addSkill("biyue")
-HegDiaochan:addSkill(HegLijian)
+HegDiaochan:addSkill("lijian")
+HegDiaochan:addSkill(HegLijianPbt)
 HegYuanshao:addSkill("luanji")
 HegYanliangwenchou:addSkill("shuangxiong")
 HegJiaxu:addSkill(HegWansha)
